@@ -1,0 +1,249 @@
+name: ecommerce-microservices
+
+x-app: &app
+  restart: unless-stopped
+  init: true
+
+services:
+  # ---------------- Hạ tầng (không mở cổng ra ngoài) ----------------
+  auth-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_DB: auth_db
+    volumes: [auth-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER} -d auth_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  customer-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${CUSTOMER_DB_USER}
+      POSTGRES_PASSWORD: ${CUSTOMER_DB_PASSWORD}
+      POSTGRES_DB: customer_db
+    volumes: [customer-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CUSTOMER_DB_USER} -d customer_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${ORDER_DB_USER}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD}
+      POSTGRES_DB: order_db
+    volumes: [order-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ORDER_DB_USER} -d order_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  product-db:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: [product-db-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  shipment-db:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: [shipment-db-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  kafka:
+    image: apache/kafka:3.8.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes: [kafka-data:/var/lib/kafka/data]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  # ---------------- Các service ----------------
+  auth-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    depends_on:
+      auth-db: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      GRPC_PORT: "50051"
+      DATABASE_URL: postgresql://${AUTH_DB_USER}:${AUTH_DB_PASSWORD}@auth-db:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: "3600"
+      KAFKA_BROKERS: kafka:9092
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      STAFF_USERNAME: ${STAFF_USERNAME:-staff}
+      STAFF_PASSWORD: ${STAFF_PASSWORD:?STAFF_PASSWORD is required}
+      STAFF_EMAIL: ${STAFF_EMAIL:-staff@example.com}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(50051,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  customer-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/customer-service/Dockerfile
+    depends_on:
+      customer-db: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      GRPC_PORT: "50052"
+      DATABASE_URL: postgresql://${CUSTOMER_DB_USER}:${CUSTOMER_DB_PASSWORD}@customer-db:5432/customer_db
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: customer-service
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(50052,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  product-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/product-service/Dockerfile
+    depends_on:
+      product-db: { condition: service_healthy }
+    environment:
+      GRPC_PORT: "50053"
+      MONGO_URI: mongodb://product-db:27017/product_db
+      SEED_SAMPLE_PRODUCTS: "true"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(50053,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  order-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    depends_on:
+      order-db: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      customer-service: { condition: service_healthy }
+      product-service: { condition: service_healthy }
+    environment:
+      GRPC_PORT: "50054"
+      DATABASE_URL: postgresql://${ORDER_DB_USER}:${ORDER_DB_PASSWORD}@order-db:5432/order_db
+      KAFKA_BROKERS: kafka:9092
+      CUSTOMER_GRPC_ADDR: customer-service:50052
+      PRODUCT_GRPC_ADDR: product-service:50053
+      OUTBOX_POLL_MS: "1000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(50054,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  shipment-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: services/shipment-service/Dockerfile
+    depends_on:
+      shipment-db: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      GRPC_PORT: "50055"
+      MONGO_URI: mongodb://shipment-db:27017/shipment_db
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: shipment-service
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(50055,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  api-gateway:
+    <<: *app
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    depends_on:
+      redis: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+      customer-service: { condition: service_healthy }
+      product-service: { condition: service_healthy }
+      order-service: { condition: service_healthy }
+      shipment-service: { condition: service_healthy }
+    ports: ["3000:3000"]
+    environment:
+      PORT: "3000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      REDIS_URL: redis://redis:6379
+      AUTH_GRPC_ADDR: auth-service:50051
+      CUSTOMER_GRPC_ADDR: customer-service:50052
+      PRODUCT_GRPC_ADDR: product-service:50053
+      ORDER_GRPC_ADDR: order-service:50054
+      SHIPMENT_GRPC_ADDR: shipment-service:50055
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+volumes:
+  auth-db-data:
+  customer-db-data:
+  order-db-data:
+  product-db-data:
+  shipment-db-data:
+  kafka-data:

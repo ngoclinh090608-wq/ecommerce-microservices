@@ -1,0 +1,1 @@
+DELETE FROM "Customer" WHERE uid >= 900000;

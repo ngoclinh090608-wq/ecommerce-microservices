@@ -1,0 +1,43 @@
+syntax = "proto3";
+package ecommerce.customer;
+
+service CustomerService {
+  rpc CreateCustomer (CreateCustomerRequest) returns (Customer);
+  rpc GetCustomer (GetCustomerRequest) returns (Customer);
+  rpc UpdateCustomer (UpdateCustomerRequest) returns (UpdateCustomerResponse);
+  rpc GetMembership (GetCustomerRequest) returns (MembershipInfo);
+}
+
+message Customer {
+  int32 uid = 1;
+  string fullname = 2;
+  int32 mid = 3;
+  string mname = 4;
+  int32 score = 5;
+}
+
+message CreateCustomerRequest {
+  int32 uid = 1;
+  string fullname = 2;
+}
+
+message GetCustomerRequest { int32 uid = 1; }
+
+message UpdateCustomerRequest {
+  int32 uid = 1;
+  string fullname = 2;
+  int32 mid = 3;
+  int32 requester_uid = 4;
+  string requester_role = 5;  // service tự kiểm tra: chỉ chính chủ hoặc admin
+}
+message UpdateCustomerResponse {
+  int32 uid = 1;
+  string message = 2;
+}
+
+message MembershipInfo {
+  int32 uid = 1;
+  int32 mid = 2;
+  string mname = 3;
+  int32 score = 4;
+}

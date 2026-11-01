@@ -1,0 +1,21 @@
+syntax = "proto3";
+package ecommerce.shipment;
+
+service ShipmentService {
+  rpc GetShipment (GetShipmentRequest) returns (Shipment);
+  rpc GetShipmentByOrder (GetShipmentByOrderRequest) returns (Shipment);
+  rpc UpdateShipmentStatus (UpdateStatusRequest) returns (Shipment);
+}
+
+message Shipment {
+  int32 shipid = 1;
+  int32 oid = 2;
+  string status = 3;   // PENDING | SHIPPING | DELIVERED | CANCELLED
+}
+
+message GetShipmentRequest { int32 shipid = 1; }
+message GetShipmentByOrderRequest { int32 oid = 1; }
+message UpdateStatusRequest {
+  int32 shipid = 1;
+  string status = 2;
+}

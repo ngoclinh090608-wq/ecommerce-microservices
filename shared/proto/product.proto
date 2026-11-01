@@ -1,0 +1,59 @@
+syntax = "proto3";
+package ecommerce.product;
+
+service ProductService {
+  rpc ListProducts (Empty) returns (ProductList);
+  rpc GetProduct (GetProductRequest) returns (Product);
+  rpc CreateProduct (ProductInput) returns (Product);
+  rpc UpdateProduct (UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct (GetProductRequest) returns (DeleteProductResponse);
+  rpc ReserveStock (StockRequest) returns (ReserveStockResponse);
+  rpc ReleaseStock (StockRequest) returns (Empty);
+}
+
+message Empty {}
+
+message Product {
+  int32 pid = 1;
+  string pname = 2;
+  double price = 3;
+  int32 quantity = 4;
+}
+message ProductList { repeated Product items = 1; }
+message GetProductRequest { int32 pid = 1; }
+
+message ProductInput {
+  string pname = 1;
+  double price = 2;
+  int32 quantity = 3;
+}
+
+message UpdateProductResponse {
+  int32 pid = 1;
+  string message = 2;
+}
+message DeleteProductResponse {
+  int32 pid = 1;
+  string message = 2;
+}
+
+message StockItem {
+  int32 pid = 1;
+  int32 qty = 2;
+}
+message StockRequest { repeated StockItem items = 1; }
+
+message ReservedItem {
+  int32 pid = 1;
+  int32 qty = 2;
+  double unit_price = 3;  // giá tại thời điểm đặt
+}
+message ReserveStockResponse { repeated ReservedItem items = 1; }
+
+message UpdateProductRequest {
+  int32 pid = 1;
+  string pname = 2;
+  double price = 3;
+  int32 quantity = 4;
+  repeated string update_mask = 5;
+}

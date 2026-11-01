@@ -1,0 +1,11 @@
+# Use this workspace to collaborate
+workspace:
+  id: 55d1bcc5-fd1d-4e3e-8717-e772c40f73a2
+
+localResources:
+  specs:
+    - ../shared/proto/auth.proto
+    - ../shared/proto/customer.proto
+    - ../shared/proto/order.proto
+    - ../shared/proto/product.proto
+    - ../shared/proto/shipment.proto

@@ -1,0 +1,14 @@
+# CHỈ DÙNG KHI KIỂM THỬ TRÊN MÁY NHÀ PHÁT TRIỂN. Không dùng cho bản nộp.
+services:
+  auth-db: { ports: ["5433:5432"] }
+  customer-db: { ports: ["5434:5432"] }
+  order-db: { ports: ["5435:5432"] }
+  product-db: { ports: ["27018:27017"] }
+  shipment-db: { ports: ["27019:27017"] }
+  redis: { ports: ["6379:6379"] }
+  kafka: { ports: ["29092:29092"] }
+  auth-service: { ports: ["50051:50051"] }
+  customer-service: { ports: ["50052:50052"] }
+  product-service: { ports: ["50053:50053"] }
+  order-service: { ports: ["50054:50054"] }
+  shipment-service: { ports: ["50055:50055"] }

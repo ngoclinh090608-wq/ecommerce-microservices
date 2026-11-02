@@ -4,6 +4,7 @@ const { HttpError } = require('../lib/errors');
 const cache = require('../lib/cache');
 const wrap = require('../lib/wrap');
 const v = require('../lib/validate');
+const { waitForShipment } = require('../lib/shipment');
 
 const MAX_LINES = 50;
 
@@ -22,13 +23,15 @@ router.post('/', wrap(async (req, res) => {
   // Tồn kho đã đổi: xóa cache để số liệu hiển thị không cũ
   await cache.del('cache:products', ...items.map((it) => `cache:product:${it.pid}`));
 
-  res.status(201).json({
+  // The order is committed: a delayed shipment must never turn this into a failed create.
+  const shipment = await waitForShipment(o.oid);
+  res.location(`/api/orders/${o.oid}`).status(201).json({
     oid: o.oid,
     uid: o.uid,
     discount: o.discount,
     total_amount: o.total_amount,
     items: o.items,
-    shipment: { status: o.shipment_status || 'PENDING' },
+    shipment: shipment || { shipid: null, status: o.shipment_status || 'PENDING' },
   });
 }));
 
@@ -55,7 +58,7 @@ router.get('/:oid', wrap(async (req, res) => {
     const s = await rpc('shipment', 'GetShipmentByOrder', { oid });
     shipment = { shipid: s.shipid, status: s.status };
   } catch (e) {
-    if (e instanceof HttpError && e.status === 404) shipment = { status: 'PENDING' }; // chưa kịp tạo
+    if (e instanceof HttpError && e.status === 404) shipment = { shipid: null, status: 'PENDING' }; // chưa kịp tạo
     else console.error(`[gateway] could not load shipment for order ${oid}:`, e.message);
   }
 

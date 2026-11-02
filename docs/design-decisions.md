@@ -1,16 +1,15 @@
-﻿# Design decisions (assumptions)
+# Design decisions (assumptions)
 
 1. discount is a percentage. total_amount = sum(qty * unit_price) * (1 - discount/100).
-2. POST /api/orders returns shipment_status = "PENDING" only; shipid is not returned
-   because the shipment is created asynchronously from the OrderCreated event.
+2. POST /api/orders waits up to 2.5 seconds for the asynchronous shipment and returns its real shipid/status when available. Otherwise shipid is null and status is PENDING. The order remains 201 Created with Location: /api/orders/:oid; GET that URL until shipment.shipid is available. Kafka/Shipment failure cannot undo an already committed order.
 3. Discount table (provisional): score < 100 -> 0%; 100-499 -> 5%; 500-999 -> 10%; >= 1000 -> 15%.
 4. Money is double in proto for the MVP; round to 2 decimals. Known weakness of floating point.
 5. pid and shipid are integers generated from a counters collection in MongoDB.
 
 6. Per ERD, score belongs to MemberShip (tier), not to the customer. Seed tiers: Standard 0, Silver 100, Gold 500, Platinum 1000.
 7. Only admin may change a customer's mid (members could otherwise self-promote to a higher discount).
-8. GetMembership creates a default profile if missing (compensates for a lost user-registered event); GetCustomer does not (TC-CUS-02 expects 404).
-9. Open question for Step 6: UC07 says "discount amount"; current decision is percentage.
+8. GetMembership and GetCustomer both return NOT_FOUND for a missing Customer. Reads never create a default profile. This matches UC06/UC07 and prevents ordering before the user-registered event has created the profile.
+9. discount is a percentage as in API-ORD-01 and the grading demo. At Gold score 500, gross 200 gives discount=10, a monetary reduction of 20 and total_amount=180.
 
 10. Integer fields (pid, qty, quantity) are int32 on the wire; a value such as 1.5 is truncated to 1 before the service sees it.
     The API Gateway must reject non-integer JSON numbers for these fields (400) before calling gRPC.
@@ -31,3 +30,4 @@
     Displayed stock can be stale up to the TTL; orders always check the real stock.
 17. Rate limits: 200 requests/min/IP overall and 10/min/IP on /api/auth. If Redis is down the gateway fails open
     (no cache, no limiting) and /api/health reports 503.
+18. Registration passwords must contain 8-72 characters with letters and digits. Use P@ss1234 (not the seven-character P@ss123 sample in the external spreadsheet).

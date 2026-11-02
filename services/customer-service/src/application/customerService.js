@@ -37,10 +37,11 @@ async function getCustomer({ uid }) {
   return toDto(c);
 }
 
-// Gọi nội bộ (Order Service). Tạo hồ sơ mặc định nếu thiếu.
+// Gọi nội bộ (Order Service). Không tạo dữ liệu trong thao tác đọc.
 async function getMembership({ uid }) {
   if (!uid || uid < 1) throw invalid('uid is required');
-  const c = await ensureCustomer(uid);
+  const c = await repo.findByUid(uid);
+  if (!c) throw notFound('Customer not found');
   return { uid: c.uid, mid: c.mid, mname: c.membership.mname, score: c.membership.score };
 }
 

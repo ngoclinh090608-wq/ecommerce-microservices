@@ -1,0 +1,21 @@
+$kind: http-request
+name: Discount - 2 products
+description: ""
+url: "{{baseUrl}}/api/orders"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"items\": [\r
+
+    \    { \"pid\": {{demoPid}}, \"qty\": 2}\r
+
+    \  ]\r
+
+    }\r\n"
+auth:
+  type: bearer
+  credentials:
+    token: "{{memberToken}}"
+order: 4000

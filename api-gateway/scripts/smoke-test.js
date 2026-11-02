@@ -188,6 +188,7 @@ const is = (r, status) => r.status === status;
   check('TC-ORD-01 create order -> 201', is(r, 201) && r.json.oid > 0 && r.json.items[0].unit_price === 100, JSON.stringify(r.json));
   check('TC-ORD-04 Gold tier: discount 10, total 180', r.json && r.json.discount === 10 && r.json.total_amount === 180);
   check('create response carries shipment status PENDING', r.json && r.json.shipment && r.json.shipment.status === 'PENDING');
+  check('create response includes explicit shipid and order Location', r.json && Object.hasOwn(r.json.shipment, 'shipid') && (r.json.shipment.shipid === null || Number.isInteger(r.json.shipment.shipid)) && r.headers.get('location') === `/api/orders/${r.json.oid}`);
   const oid = r.json && r.json.oid;
 
   r = await api('GET', `/api/products/${OP}`, { token: t1 });

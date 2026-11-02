@@ -1,4 +1,4 @@
-﻿# Known risks
+# Known risks
 
 ## Prisma CLI: deepmerge-ts (GHSA-ggr8-5vv4-36mx), severity high
 - Affects: auth-service, customer-service, order-service (Prisma 6.19.3)
@@ -11,8 +11,8 @@
 ## Auth: dual write (DB then Kafka)
 - Affects: auth-service Register
 - Risk: user row is saved, then user-registered is published; not one transaction.
-  If Kafka fails, the user exists but has no Customer profile, so ordering fails later.
-- Status: open; mitigation planned in Step 4 (Customer Service creates a default profile on demand)
+  If Kafka fails, the user exists but has no Customer profile; membership lookup and ordering return 404 until the event is recovered.
+- Status: open. Reads do not create profiles. Recover/replay the missing user-registered event; a transactional Auth outbox remains future work.
 
 ## kafkajs TimeoutNegativeWarning (Node v24.19.0)
 - Source: kafkajs RequestQueue.scheduleCheckPendingRequests (inside the library)

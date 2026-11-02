@@ -115,7 +115,11 @@ function check(name, cond, detail = '') {
     const product = makeClient('product.proto', 'product', 'ProductService', 'localhost:50053');
     r = await call(product, 'CreateProduct', { pname: `ship-e2e-${Date.now()}`, price: 10, quantity: 5 });
     const pid = r.res.pid;
-    r = await call(order, 'CreateOrder', { uid: base + 10, items: [{ pid, qty: 1 }] });
+    const customer = makeClient('customer.proto', 'customer', 'CustomerService', 'localhost:50052');
+    const uid = base + 10;
+    const profile = await call(customer, 'CreateCustomer', { uid, fullname: 'Shipment E2E' });
+    check('e2e: customer prepared', !profile.err);
+    r = await call(order, 'CreateOrder', { uid, items: [{ pid, qty: 1 }] });
     check('e2e: order created', !r.err, r.err ? r.err.message : `oid=${r.res.oid}`);
     const oid = r.res && r.res.oid;
     const s = oid ? await waitFor(byOrder(oid)) : null;

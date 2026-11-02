@@ -1,7 +1,7 @@
 $kind: http-request
-name: http://localhost:3000/api/orders
+name: "{{baseUrl}}/api/orders"
 description: ""
-url: http://localhost:3000/api/orders
+url: "{{baseUrl}}/api/orders"
 method: POST
 body:
   type: json
@@ -9,7 +9,7 @@ body:
 
     \  \"items\": [\r
 
-    \    { \"pid\": 82, \"qty\": 1}\r
+    \    { \"pid\": {{demoPid}}, \"qty\": 1}\r
 
     \  ]\r
 
@@ -17,5 +17,5 @@ body:
 auth:
   type: bearer
   credentials:
-    token: "{{json_web_token_00ej}}"
+    token: "{{memberToken}}"
 order: 5000

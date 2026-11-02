@@ -3,3 +3,5 @@ node_modules/
 *.log
 .vscode/
 coverage/
+
+postman/*.local.postman_environment.json

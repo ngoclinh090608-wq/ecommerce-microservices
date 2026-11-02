@@ -90,8 +90,12 @@ function check(name, cond, detail = '') {
   r = await call(order, 'CreateOrder', { uid: U1, items: [{ pid: P2, qty: 1 }, { pid: P2, qty: 2 }] });
   check('duplicate pid lines merged', !r.err && r.res.items.length === 1 && r.res.items[0].qty === 3);
 
+  const beforeMissingCustomer = await stock(P2);
   r = await call(order, 'CreateOrder', { uid: U5, items: [{ pid: P2, qty: 1 }] });
-  check('customer without profile: order accepted, discount 0', !r.err && r.res.discount === 0);
+  check('customer without profile -> NOT_FOUND', code(r) === grpc.status.NOT_FOUND);
+  check('missing customer leaves stock unchanged', (await stock(P2)) === beforeMissingCustomer);
+  r = await call(order, 'ListOrders', member(U5));
+  check('missing customer leaves no order', !r.err && r.res.items.length === 0);
 
   // Đọc đơn
   r = await call(order, 'GetOrder', { oid: o1.oid, ...member(U1) });

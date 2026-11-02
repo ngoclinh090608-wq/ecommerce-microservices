@@ -105,3 +105,8 @@ docker compose start     # bật lại
 Không nên "Pause" rồi thoát Docker Desktop khi hệ thống đang chạy: tiến trình bị giết đột ngột, các CSDL phải tự phục hồi lúc bật lại.
 Không chạy `docker compose down -v`, `docker volume prune` hay `docker system prune --volumes`: chúng xóa dữ liệu.
 Toàn bộ container có `restart: unless-stopped`, nên sau khi Docker Desktop khởi động lại hệ thống tự lên.
+## Demo theo bảng chấm Prompt 3
+
+Xem [hướng dẫn demo Prompt 3](docs/prompt3-demo.md). Sau khi hệ thống healthy, chạy `node scripts/prepare-demo.js`, rồi import collection JSON và environment local được sinh trong thư mục `postman/`. Dữ liệu dùng ID thực tế, không phụ thuộc Customer 65 hay Product 82.
+
+Chạy cả sáu smoke suite trên Linux hoặc Windows bằng `node scripts/run-smoke-tests.js` (cần compose dev ports và dependency local). Regression test mới và giới hạn hợp đồng Shipment bất đồng bộ được ghi trong hướng dẫn demo.

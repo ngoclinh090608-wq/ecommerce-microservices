@@ -1,0 +1,7 @@
+$kind: http-request
+name: Customer without token - expect 401
+url: "{{baseUrl}}/api/customers/{{demoUid}}"
+method: GET
+auth:
+  type: noauth
+order: 3500

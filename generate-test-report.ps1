@@ -104,4 +104,5 @@ Set-Content -Path (Join-Path $root 'docs\test-report.md') -Value $md -Encoding u
 $summary | Format-Table -AutoSize
 Write-Host "Test cases passed: $tcPass of $($tcs.Count)   Checks passed: $totalPass   Failed: $totalFail"
 Write-Host 'Report written to docs\test-report.md'
-if ($tcPass -ne $tcs.Count -or $totalFail -ne 0) { exit 1 }
+$crashed = @($summary | Where-Object { $_.ExitCode -ne 0 }).Count
+if ($tcPass -ne $tcs.Count -or $totalFail -ne 0 -or $crashed -ne 0) { exit 1 }

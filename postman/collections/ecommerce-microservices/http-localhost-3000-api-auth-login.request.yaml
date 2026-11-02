@@ -1,7 +1,7 @@
 $kind: http-request
-name: http://localhost:3000/api/auth/login
+name: "{{baseUrl}}/api/auth/login"
 description: ""
-url: http://localhost:3000/api/auth/login
+url: "{{baseUrl}}/api/auth/login"
 method: POST
 body:
   type: json

@@ -68,7 +68,9 @@ const code = (r) => r.err && r.err.code;
 
   const lazy = base + 7000;
   r = await call('GetMembership', { uid: lazy });
-  check('GetMembership creates default profile', !r.err && r.res.mname === 'Standard');
+  check('missing membership -> NOT_FOUND (no implicit customer)', code(r) === grpc.status.NOT_FOUND);
+  r = await call('GetCustomer', { uid: lazy });
+  check('membership lookup did not create a customer', code(r) === grpc.status.NOT_FOUND);
 
   // Luồng thật: Auth -> Kafka -> Customer (cần Auth Service đang chạy)
   const uname = `e2e${Date.now()}`;

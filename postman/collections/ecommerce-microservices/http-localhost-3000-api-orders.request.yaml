@@ -1,21 +1,10 @@
 $kind: http-request
-name: http://localhost:3000/api/orders
+name: "{{baseUrl}}/api/orders"
 description: ""
-url: http://localhost:3000/api/orders
+url: "{{baseUrl}}/api/orders"
 method: GET
-body:
-  type: json
-  content: "{\r
-
-    \  \"items\": [\r
-
-    \    { \"pid\": 82, \"qty\": 2 }\r
-
-    \  ]\r
-
-    }"
 auth:
   type: bearer
   credentials:
-    token: "{{json_web_token_00ej}}"
-order: 4000
+    token: "{{memberToken}}"
+order: 4500
